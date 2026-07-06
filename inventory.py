@@ -370,8 +370,8 @@ with tab2:
     st.markdown("---")
     with st.expander("🗑️ Delete a Material"):
         del_item = st.selectbox("Select Material to Delete", options=sorted(df['Item_Name'].unique()), key="inv_del_select")
-        st.warning(f"Ye **{del_item}** ko poori tarah inventory se hata dega. Ye action undo nahi ho sakta.")
-        confirm_inv_del = st.checkbox(f"Haan, main confirm karta/karti hoon", key="inv_confirm_delete")
+        st.warning(f"This will permanently remove **{del_item}** from the inventory. This action cannot be undone.")
+        confirm_inv_del = st.checkbox("Yes, I confirm", key="inv_confirm_delete")
         if st.button("🗑️ Delete Permanently", type="primary", disabled=not confirm_inv_del, key="inv_del_btn"):
             fresh = load_inventory()
             fresh = fresh[fresh['Item_Name'] != del_item]
@@ -453,8 +453,8 @@ with tab4:
 
     st.markdown("---")
     with st.expander("🗑️ Delete this Material"):
-        st.warning(f"Ye **{item}** ko poori tarah inventory se hata dega. Ye action undo nahi ho sakta.")
-        confirm_del = st.checkbox(f"Haan, main confirm karta/karti hoon ki **{item}** delete karna hai", key="confirm_delete")
+        st.warning(f"This will permanently remove **{item}** from the inventory. This action cannot be undone.")
+        confirm_del = st.checkbox(f"Yes, I confirm I want to delete **{item}**", key="confirm_delete")
         if st.button("🗑️ Delete Permanently", type="primary", disabled=not confirm_del):
             fresh = load_inventory()
             fresh = fresh[fresh['Item_Name'] != item]
@@ -465,7 +465,7 @@ with tab4:
 # ── WORKER ISSUANCE ─────────────────────────────────────────────────────────────
 with tab5:
     st.markdown("#### 👷 Issue Material to Worker")
-    st.info("Jab bhi koi worker material leke jaye, yaha entry karo — stock turant deduct ho jayega aur record neeche dikhega.")
+    st.info("Whenever a worker takes material, log the entry here — stock will be deducted instantly and the record will appear below.")
 
     with st.form("issue_form", clear_on_submit=True):
         w1,w2 = st.columns(2)
@@ -522,11 +522,11 @@ with tab5:
     # ── DAILY WORKER REPORT (PDF) ─────────────────────────────────────────
     st.markdown("---")
     st.markdown("#### 🗓️ Daily Worker Report (PDF)")
-    st.caption("Kisi bhi din ka pura record nikalo — kis worker ne us din kya-kya saman liya.")
+    st.caption("Pull the complete record for any day — which worker took what material on that day.")
 
     rep_col1, rep_col2 = st.columns([1, 2])
     report_date = rep_col1.date_input(
-        "Report ke liye date chuno",
+        "Choose a date for the report",
         value=date.today(),
         max_value=date.today(),
         key="daily_report_date"
@@ -534,7 +534,7 @@ with tab5:
 
     day_count = len(idf[idf['Date'].dt.date == report_date]) if len(idf) > 0 else 0
     rep_col2.markdown(
-        f"<div style='padding-top:28px'>📌 <b>{day_count}</b> transaction(s) is din ke liye mile.</div>",
+        f"<div style='padding-top:28px'>📌 <b>{day_count}</b> transaction(s) found for this date.</div>",
         unsafe_allow_html=True
     )
 
@@ -551,7 +551,7 @@ with tab5:
     st.markdown("#### 📜 Issuance History")
 
     if len(idf) == 0:
-        st.info("Abhi tak koi material issue nahi hua hai.")
+        st.info("No material has been issued yet.")
     else:
         h1,h2,h3 = st.columns(3)
         f_worker = h1.selectbox("Filter by Worker", ["All"]+sorted(idf['Worker_Name'].unique().tolist()))
@@ -580,7 +580,7 @@ with tab5:
 # ── UPLOAD PHOTO ──────────────────────────────────────────────────────────────
 with tab6:
     st.markdown("#### 📸 Upload Photo to Add Stock")
-    st.info("Stock register, bill, ya packing list ki photo upload karo. System usme se text nikaalne ki koshish karega, jise dekh kar aap neeche diye form se material add kar sakte ho.")
+    st.info("Upload a photo of a stock register, bill, or packing list. The system will try to extract text from it, which you can review and use to add materials via the form below.")
 
     photo = st.file_uploader("Choose Photo", type=['jpg','jpeg','png','webp'])
 
@@ -589,20 +589,20 @@ with tab6:
         st.image(image, caption="Uploaded Photo", use_container_width=True)
 
         if not OCR_AVAILABLE:
-            st.warning("⚠️ OCR engine (pytesseract) install nahi hai. Photo dikh rahi hai, lekin text automatically nahi nikal payega.")
+            st.warning("⚠️ OCR engine (pytesseract) is not installed. The photo is visible, but text cannot be extracted automatically.")
             st.code("pip install pytesseract pillow --break-system-packages", language="bash")
-            st.caption("Windows par Tesseract-OCR bhi alag se install karna hoga: https://github.com/UB-Mannheim/tesseract/wiki")
+            st.caption("On Windows, Tesseract-OCR also needs to be installed separately: https://github.com/UB-Mannheim/tesseract/wiki")
         else:
             try:
                 extracted_text = pytesseract.image_to_string(image)
                 if extracted_text.strip():
-                    st.success("✅ Photo se ye text nikla hai:")
+                    st.success("✅ Text extracted from the photo:")
                     st.text_area("Extracted Text (raw)", value=extracted_text, height=140)
 
                     draft = parse_ocr_lines(extracted_text)
                     if len(draft) > 0:
                         st.markdown("##### ✏️ Auto-detected Items — Check & Correct Below")
-                        st.caption("System ne khud rows bana di hain. Galat values ko table mein hi edit kar do (double-click karke), Category/Unit set karo, aur jo row chahiye nahi use delete kar do. Fir 'Add All' dabao.")
+                        st.caption("The system has auto-generated these rows. Edit any incorrect values directly in the table (double-click), set Category/Unit, and delete any row you don't need. Then click 'Add All'.")
 
                         edited = st.data_editor(
                             draft,
@@ -643,12 +643,12 @@ with tab6:
                             st.success(msg)
                             st.rerun()
                     else:
-                        st.warning("⚠️ Photo se items automatically detect nahi ho paaye. Neeche manual form use karo.")
+                        st.warning("⚠️ Items could not be automatically detected from the photo. Use the manual form below.")
                 else:
-                    st.warning("⚠️ Photo se koi text detect nahi hua. Saaf, sidhi aur achi roshni wali photo try karo.")
+                    st.warning("⚠️ No text could be detected from the photo. Try a clear, straight photo with good lighting.")
             except Exception:
-                st.error("❌ Tesseract-OCR engine PC par nahi mila.")
-                st.markdown("Install karo: https://github.com/UB-Mannheim/tesseract/wiki (Windows), phir app restart karo.")
+                st.error("❌ Tesseract-OCR engine not found on this system.")
+                st.markdown("Install it from: https://github.com/UB-Mannheim/tesseract/wiki (Windows), then restart the app.")
 
         st.markdown("---")
         st.markdown("##### ➕ Or Add One Material Manually")
