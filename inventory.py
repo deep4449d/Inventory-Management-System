@@ -80,6 +80,68 @@ def generate_inventory_pdf(data):
 
     return bytes(pdf.output())
 
+def generate_daily_issuance_pdf(idf, report_date):
+    """Builds a PDF for a single day: every issuance transaction that day,
+    plus a per-worker total, so it's clear who took what and how much."""
+    day_data = idf[idf['Date'].dt.date == report_date].copy() if len(idf) > 0 else idf.copy()
+    day_data = day_data.sort_values(['Worker_Name', 'Date']) if len(day_data) > 0 else day_data
+
+    pdf = FPDF(orientation='L', unit='mm', format='A4')
+    pdf.add_page()
+    pdf.set_font('Helvetica', 'B', 16)
+    pdf.cell(0, 10, 'ATLANTIC DESIGN', ln=True, align='C')
+    pdf.set_font('Helvetica', '', 11)
+    pdf.cell(0, 8, 'Daily Worker Issuance Report', ln=True, align='C')
+    pdf.set_font('Helvetica', '', 9)
+    pdf.cell(0, 6, f"Date: {report_date.strftime('%d %b %Y')}", ln=True, align='C')
+    pdf.ln(4)
+
+    if len(day_data) == 0:
+        pdf.set_font('Helvetica', '', 11)
+        pdf.cell(0, 10, 'No material was issued on this date.', ln=True, align='C')
+        return bytes(pdf.output())
+
+    headers    = ['Time', 'Worker Name', 'Item Name', 'Quantity', 'Unit', 'Order Ref', 'Remarks']
+    col_widths = [25, 45, 60, 25, 25, 35, 62]
+
+    pdf.set_font('Helvetica', 'B', 9)
+    pdf.set_fill_color(20, 30, 50)
+    pdf.set_text_color(255, 255, 255)
+    for h, w in zip(headers, col_widths):
+        pdf.cell(w, 8, h, border=1, fill=True, align='C')
+    pdf.ln()
+
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font('Helvetica', '', 8)
+    for _, row in day_data.iterrows():
+        values = [
+            row['Date'].strftime('%I:%M %p'),
+            str(row['Worker_Name']),
+            str(row['Item_Name']),
+            f"{row['Quantity']}",
+            str(row['Unit']),
+            str(row['Order_Ref']) if pd.notna(row['Order_Ref']) else '',
+            str(row['Remarks']) if pd.notna(row['Remarks']) else ''
+        ]
+        for v, w in zip(values, col_widths):
+            safe_v = v.encode('latin-1', 'replace').decode('latin-1')
+            pdf.cell(w, 7, safe_v, border=1)
+        pdf.ln()
+
+    pdf.ln(4)
+    pdf.set_font('Helvetica', 'B', 10)
+    pdf.cell(0, 8, f"Total Transactions: {len(day_data)}  |  Total Quantity Issued: {day_data['Quantity'].sum():.0f}", ln=True)
+
+    pdf.ln(2)
+    pdf.set_font('Helvetica', 'B', 9)
+    pdf.cell(0, 7, 'Worker-wise Summary for the Day:', ln=True)
+    pdf.set_font('Helvetica', '', 8)
+    day_summary = day_data.groupby('Worker_Name')['Quantity'].sum().reset_index()
+    for _, r in day_summary.iterrows():
+        pdf.cell(0, 6, f"  - {r['Worker_Name']}: {r['Quantity']:.0f} units taken", ln=True)
+
+    return bytes(pdf.output())
+
 def parse_ocr_lines(text):
     """Best-effort parser: turns messy OCR text lines into draft inventory rows.
     Anchors on a $/₹-prefixed number as the price (most reliable signal in noisy
@@ -456,6 +518,34 @@ with tab5:
                 f"🟢 **{r['Worker_Name']}** took **{r['Quantity']} {r['Unit']}** of **{r['Item_Name']}** — {r['Date']}"
                 + (f" · Ref: {r['Order_Ref']}" if pd.notna(r['Order_Ref']) and str(r['Order_Ref']).strip() else "")
             )
+
+    # ── DAILY WORKER REPORT (PDF) ─────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("#### 🗓️ Daily Worker Report (PDF)")
+    st.caption("Kisi bhi din ka pura record nikalo — kis worker ne us din kya-kya saman liya.")
+
+    rep_col1, rep_col2 = st.columns([1, 2])
+    report_date = rep_col1.date_input(
+        "Report ke liye date chuno",
+        value=date.today(),
+        max_value=date.today(),
+        key="daily_report_date"
+    )
+
+    day_count = len(idf[idf['Date'].dt.date == report_date]) if len(idf) > 0 else 0
+    rep_col2.markdown(
+        f"<div style='padding-top:28px'>📌 <b>{day_count}</b> transaction(s) is din ke liye mile.</div>",
+        unsafe_allow_html=True
+    )
+
+    daily_pdf_bytes = generate_daily_issuance_pdf(idf, report_date)
+    st.download_button(
+        "⬇️ Download Daily Report PDF",
+        daily_pdf_bytes,
+        f"daily_issuance_report_{report_date.strftime('%Y-%m-%d')}.pdf",
+        "application/pdf",
+        type="primary"
+    )
 
     st.markdown("---")
     st.markdown("#### 📜 Issuance History")
