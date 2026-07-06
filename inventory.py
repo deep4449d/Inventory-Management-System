@@ -23,15 +23,18 @@ st.set_page_config(page_title="Atlantic Design — Inventory", page_icon="🧵",
 
 st.markdown("""
 <style>
-[data-testid="stAppViewContainer"] { background-color: #0a0f1a; }
-[data-testid="stHeader"] { background-color: #0a0f1a; }
-h1,h2,h3,h4 { color: #d4a017 !important; }
+[data-testid="stAppViewContainer"] { background-color: #ffffff; }
+[data-testid="stHeader"] { background-color: #ffffff; }
+h1,h2,h3,h4 { color: #1a1a1a !important; }
+h4 { border-left: 3px solid #e0a020; padding-left: 10px; }
 [data-testid="metric-container"] {
-    background: #131b2c;
-    border: 1px solid #2a3550;
+    background: #f7f7f7;
+    border: 1px solid #e2e2e2;
     border-radius: 10px;
     padding: 15px;
 }
+[data-testid="stMetricValue"] { color: #1a1a1a; }
+[data-testid="stCaptionContainer"] { color: #555555 !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -250,8 +253,17 @@ idf = load_issuance()
 CATS = ['Fabric','Thread','Trims','Labels','Interlining','Packaging','Dyes & Chemicals','Other']
 UNITS = ['Meters','Rolls','Pieces','Kg','Dozen','Boxes']
 
-# ── HEADER ──────────────────────────────────────────────────────────────────
-st.markdown("# ATLANTIC DESIGN")
+# ── HEADER (styled to match the Atlantic Designs logo) ──────────────────────
+st.markdown("""
+<div style='line-height:1.05; margin-bottom:2px;'>
+    <span style='font-family:Arial, Helvetica, sans-serif; font-weight:700; font-style:italic;
+                 font-size:46px; color:#e0a020; letter-spacing:1px;'>ATLANTIC</span>
+</div>
+<div style='margin-bottom:6px;'>
+    <span style='font-family:Arial, Helvetica, sans-serif; font-weight:600;
+                 font-size:16px; color:#1a1a1a; letter-spacing:9px;'>DESIGN</span>
+</div>
+""", unsafe_allow_html=True)
 st.caption("Fabric, Trims, Packaging Stock & Worker Material Issuance")
 
 st.markdown("---")
@@ -289,16 +301,16 @@ with tab1:
     with l:
         st.markdown("#### Stock by Category")
         fig = px.bar(cat_grp, x='Category', y='Current_Stock', color='Category',
-                     template='plotly_dark', color_discrete_sequence=px.colors.qualitative.Bold)
-        fig.update_layout(plot_bgcolor='#131b2c', paper_bgcolor='#131b2c',
+                     template='plotly_white', color_discrete_sequence=px.colors.qualitative.Bold)
+        fig.update_layout(plot_bgcolor='#ffffff', paper_bgcolor='#ffffff',
                           showlegend=False, height=280, margin=dict(l=5,r=5,t=5,b=5))
         st.plotly_chart(fig, use_container_width=True)
 
     with r:
         st.markdown("#### Category Split")
         fig2 = px.pie(cat_grp, names='Category', values='Current_Stock', hole=0.45,
-                      template='plotly_dark', color_discrete_sequence=px.colors.qualitative.Bold)
-        fig2.update_layout(plot_bgcolor='#131b2c', paper_bgcolor='#131b2c',
+                      template='plotly_white', color_discrete_sequence=px.colors.qualitative.Bold)
+        fig2.update_layout(plot_bgcolor='#ffffff', paper_bgcolor='#ffffff',
                            height=280, margin=dict(l=5,r=5,t=5,b=5))
         st.plotly_chart(fig2, use_container_width=True)
 
@@ -307,10 +319,10 @@ with tab1:
         st.markdown("#### Current vs Minimum Stock")
         low6 = df.sort_values('Current_Stock').head(6)
         fig3 = go.Figure()
-        fig3.add_trace(go.Bar(name='Current', x=low6['Item_Name'], y=low6['Current_Stock'], marker_color='#d4a017'))
+        fig3.add_trace(go.Bar(name='Current', x=low6['Item_Name'], y=low6['Current_Stock'], marker_color='#e0a020'))
         fig3.add_trace(go.Bar(name='Minimum', x=low6['Item_Name'], y=low6['Minimum_Stock'], marker_color='#ff3d5a'))
-        fig3.update_layout(barmode='group', template='plotly_dark',
-                           plot_bgcolor='#131b2c', paper_bgcolor='#131b2c',
+        fig3.update_layout(barmode='group', template='plotly_white',
+                           plot_bgcolor='#ffffff', paper_bgcolor='#ffffff',
                            height=280, margin=dict(l=5,r=5,t=5,b=5))
         st.plotly_chart(fig3, use_container_width=True)
 
@@ -319,8 +331,8 @@ with tab1:
         if len(idf) > 0:
             wk = idf.groupby('Worker_Name')['Quantity'].sum().reset_index().sort_values('Quantity', ascending=True).tail(6)
             fig5 = px.bar(wk, x='Quantity', y='Worker_Name', orientation='h',
-                          color='Quantity', color_continuous_scale='Oranges', template='plotly_dark')
-            fig5.update_layout(plot_bgcolor='#131b2c', paper_bgcolor='#131b2c',
+                          color='Quantity', color_continuous_scale='Oranges', template='plotly_white')
+            fig5.update_layout(plot_bgcolor='#ffffff', paper_bgcolor='#ffffff',
                                height=280, margin=dict(l=5,r=5,t=5,b=5), coloraxis_showscale=False)
             st.plotly_chart(fig5, use_container_width=True)
         else:
